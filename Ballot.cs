@@ -24,13 +24,13 @@ namespace ElectionCompare
             return votes[candidateIdx];
         }
 
-        //Set any vote beyond the amount of candidates as zero
+        //Set any vote beyond the amount of candidates or with a negative value to zero
         void RemoveOutOfScopeVotes()
         {
             int candidates = votes.Count;
             for(int vote = 0; vote < candidates; vote++)
             {
-                if(votes[vote] > candidates)
+                if(votes[vote] > candidates || votes[vote] < 0)
                 {
                     votes[vote] = 0;
                 }
