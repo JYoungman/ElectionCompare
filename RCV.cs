@@ -51,7 +51,7 @@ namespace ElectionCompare
                 if (votePercentage > 50.0f)
                 {
                     winnerFound = true;
-                    result += "Winner\n";
+                    result += " Winner\n";
                 }
                 else
                 {

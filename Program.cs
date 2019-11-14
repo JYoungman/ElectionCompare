@@ -39,13 +39,44 @@ namespace ElectionCompare
 
                 for(int curBallot = 1; curBallot < ballotCount; curBallot++)
                 {
+                    //Extract numeric value of the votes
                     List<int> tempBallot = new List<int>();
                     for(int curVoteValue = 0; curVoteValue < candidateCount; curVoteValue++)
                     {
-                        tempBallot.Add(Int32.Parse(dataStrings[curVoteValue][curBallot]));
+                        try
+                        {
+                            tempBallot.Add(Int32.Parse(dataStrings[curVoteValue][curBallot]));
+                        }
+                        catch(FormatException)
+                        {
+                            tempBallot.Add(0);
+                        }
+                        catch (ArgumentException)
+                        {
+                            tempBallot.Add(0);
+                        }
+                        catch (OverflowException)
+                        {
+                            tempBallot.Add(0);
+                        }
                     }
 
-                    ballots.Add(new Ballot(tempBallot));
+                    //Ignore ballots that contain no votes
+                    bool validBallot = false;
+
+                    foreach(int vote in tempBallot)
+                    {
+                        if(vote > 0)
+                        {
+                            validBallot = true;
+                            break;
+                        }
+                    }
+
+                    if (validBallot)
+                    {
+                        ballots.Add(new Ballot(tempBallot));
+                    }
                 }
 
                 //Run the elections
