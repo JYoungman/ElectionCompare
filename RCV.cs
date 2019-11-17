@@ -23,7 +23,7 @@ namespace ElectionCompare
         //Calculating winner under Approval Voting
         public override string DetermineWinner()
         {
-            string result = "Results Under Ranked Choice Voting\n";
+            string result = "Results Under Ranked Choice Voting:\n";
             bool winnerFound = false;
 
             //First round of voting
@@ -62,27 +62,39 @@ namespace ElectionCompare
             //Determine winner
             while(!winnerFound)
             {
-                //Remove and redistribute votes from lowest performer
-                int removeIdx = FindRoundLoser();
-                result += "No winner found. Removing " + candidateList[removeIdx] + ".\n";
-                
+                //Find lowest performer
+                List<int> removeIndices = FindRoundLosers();
+
+                //Log losers
+                result += "No winner found. Removing: ";
+                foreach (int removeIdx in removeIndices)
+                {
+                    result += candidateList[removeIdx] + ", ";
+                }
+                result = result.Substring(0, result.Length - 2);
+                result += ".\n";
+
                 //Determine which votes needs to be redistributed
                 List<Ballot> modifiedBallots = new List<Ballot>();
-                foreach(Ballot curBallot in ballotList)
+                foreach (Ballot curBallot in ballotList)
                 {
-                    if(FindNextPreference(curBallot) == removeIdx)
+                    if (removeIndices.Contains(FindNextPreference(curBallot)) && !modifiedBallots.Contains(curBallot))
                     {
                         modifiedBallots.Add(curBallot);
                     }
-
                 }
-                voteCounts[removeIdx] = 0;
+
+                foreach (int rejectedCandidate in removeIndices)
+                {
+                    voteCounts[rejectedCandidate] = -1;
+                }
+
 
                 //Move votes from round loser to next viable preference
-                foreach(Ballot modBallot in modifiedBallots)
+                foreach (Ballot modBallot in modifiedBallots)
                 {
                     int nextPref = FindNextPreference(modBallot);
-                    if(nextPref != candidateCount + 1)
+                    if (nextPref != candidateCount + 1)
                     {
                         voteCounts[nextPref]++;
                     }
@@ -91,19 +103,26 @@ namespace ElectionCompare
                 //Advance round counter
                 round++;
 
+                Console.WriteLine("Finding highest vote tally");
                 //Determine new highest vote tally
                 int maxVotes = 0;
-                for(int candidate = 0; candidate < candidateCount; candidate++)
+                for (int candidate = 0; candidate < candidateCount; candidate++)
                 {
                     maxVotes = Math.Max(maxVotes, voteCounts[candidate]);
                 }
+
+                Console.WriteLine("Update results");
 
                 //Display current results
                 result += "\nRound " + (round + 1).ToString() + "\n";
                 for (int candidateResult = 0; candidateResult < candidateCount; candidateResult++)
                 {
                     int votesReceived = voteCounts[candidateResult];
-                    float votePercentage = ((float)votesReceived / ballotCount * 100);
+                    float votePercentage = 0.00f;
+                    if (votesReceived >= 0)
+                    {
+                        votePercentage = ((float)votesReceived / ballotCount * 100);
+                    }
                     result += candidateList[candidateResult] + ": " + votePercentage.ToString("0.00") + "%";
                     //Check for a winner
                     if (votePercentage > 50.0f)
@@ -118,27 +137,36 @@ namespace ElectionCompare
                 }
             }
 
+            Console.WriteLine("RCV Winner Found!");
+
             return result;
         }
 
         //Determine round loser
-        int FindRoundLoser()
+        List<int> FindRoundLosers()
         {
+            List<int> roundLoserIndices = new List<int>();
+
+            //Determine lowest vote count for the round
             int minVotes = ballotCount + 1;
-            int loserIdx = 0;
             for(int candidate = 0; candidate < candidateCount; candidate++)
             {
-                if(voteCounts[candidate] != 0)
+                if(voteCounts[candidate] >= 0)
                 {
-                    if(voteCounts[candidate] < minVotes)
-                    {
-                        minVotes = voteCounts[candidate];
-                        loserIdx = candidate;
-                    }
+                    minVotes = Math.Min(voteCounts[candidate], minVotes);
                 }
             }
 
-            return loserIdx;
+            //Find candidates with minimum value
+            for(int curCandidate = 0; curCandidate < candidateCount; curCandidate++)
+            {
+                if(voteCounts[curCandidate] == minVotes)
+                {
+                    roundLoserIndices.Add(curCandidate);
+                }
+            }
+
+            return roundLoserIndices;
         }
 
         //Determine highest preference from remaining candidates
@@ -149,7 +177,7 @@ namespace ElectionCompare
 
             for(int i = 0; i < candidateCount; i++)
             {
-                if(voteCounts[i] != 0)
+                if(voteCounts[i] > 0)
                 {
                     int votePosition = ballot.GetVoteForCandidate(i);
                     if(votePosition < threshold && votePosition != 0)
